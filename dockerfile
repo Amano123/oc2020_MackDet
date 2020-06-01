@@ -17,6 +17,8 @@ RUN set -x \
 &&  apt-get install -y --no-install-recommends \
                                         git \
                                         sudo \
+                                        vim \
+                                        #必要なパッケージはここから下に追加↓
                                         #python
                                         python3 \
                                         python3-pip \
@@ -54,6 +56,7 @@ RUN python3 -m pip --no-cache-dir install --upgrade pip \
                                             paddlepaddle \
                                             numpy \
                                             opencv-python 
+                                            #必要なライブラリはここから下に追加↓
 
 ## zsh
 COPY .zshrc /root/
