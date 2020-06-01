@@ -18,6 +18,7 @@ RUN set -x \
                                         git \
                                         sudo \
                                         vim \
+                                        zsh \
                                         #必要なパッケージはここから下に追加↓
                                         #python
                                         python3 \
@@ -28,6 +29,15 @@ RUN set -x \
                                         ## japanese
                                         language-pack-ja-base \
                                         language-pack-ja \
+                                        build-essential \
+                                        cmake \
+                                        checkinstall \
+                                        ccache \
+                                        libgtk-3-dev \
+                                        libjpeg-dev \
+                                        libpng++-dev \
+                                        wget \
+                                        unzip \
 &&  apt-get -y clean \
 &&  rm -rf /var/lib/apt/lists/* 
 
@@ -62,10 +72,45 @@ RUN python3 -m pip --no-cache-dir install --upgrade pip \
 COPY .zshrc /root/
 COPY .zshrc ${HOME}
 
-# 以降のRUN/CMDを実行するユーザー
-USER ${USER}
-
 # 以降の作業ディレクトリを指定
 WORKDIR ${HOME}
+
+RUN wget https://github.com/opencv/opencv/archive/3.4.3.zip -O opencv-3.4.3.zip
+RUN sudo apt install unzip
+RUN unzip opencv-3.4.3.zip
+RUN wget https://github.com/opencv/opencv_contrib/archive/3.4.3.zip -O opencv_contrib-3.4.3.zip
+RUN unzip opencv_contrib-3.4.3.zip
+
+COPY cmake.sh ${HOME}/opencv-3.4.3/
+
+WORKDIR opencv-3.4.3/build/
+
+RUN cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local \
+-D WITH_OPENCL=OFF -D WITH_CUDA=OFF -D BUILD_opencv_gpu=OFF \
+-D BUILD_opencv_gpuarithm=OFF -D BUILD_opencv_gpubgsegm=OFF \
+-D BUILD_opencv_gpucodec=OFF -D BUILD_opencv_gpufeatures2d=OFF \
+-D BUILD_opencv_gpufilters=OFF -D BUILD_opencv_gpuimgproc=OFF \
+-D BUILD_opencv_gpulegacy=OFF -D BUILD_opencv_gpuoptflow=OFF \
+-D BUILD_opencv_gpustereo=OFF -D BUILD_opencv_gpuwarping=OFF \
+-D BUILD_DOCS=OFF -D BUILD_TESTS=OFF \
+-D BUILD_PERF_TESTS=OFF -D BUILD_EXAMPLES=OFF \
+-D BUILD_opencv_python3=ON -D FORCE_VTK=ON \
+-D WITH_TBB=ON -D WITH_V4L=ON \
+-D WITH_OPENGL=ON -D WITH_CUBLAS=ON \
+-D BUILD_opencv_python3=ON \
+-D PYTHON3_EXECUTABLE=`pyenv local 3.6.8; pyenv which python` \
+-D PYTHON3_INCLUDE_DIR=`pyenv local 3.6.8; python -c 'from distutils.sysconfig import get_python_inc; print(get_python_inc())'` \
+-D PYTHON3_NUMPY_INCLUDE_DIRS=`pyenv local 3.6.8; python -c 'import numpy; print(numpy.get_include())'` \
+-D PYTHON3_LIBRARIES=`find $PYENV_ROOT/versions/3.6.8/lib -name 'libpython*.so'` \
+-D WITH_FFMPEG=ON \
+..
+
+# WORKDIR opencv-3.4.3/build
+RUN sudo make -j4
+RUN sudo make install
+RUN sudo ldconfig
+
+# 以降のRUN/CMDを実行するユーザー
+USER ${USER}
 
 CMD ["/bin/zsh"]
